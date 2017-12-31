@@ -8,6 +8,7 @@ var wpm_display = document.getElementById("wpm");
 var canvas = document.getElementById("canvas");
 var ctx = canvas.getContext("2d");
 
+var cheatMode = false;
 
 function loadMenuText(){
   words_cont.innerHTML = "<a href='javascript:newGame()'>Click here to start new game!</a><br>or hit enter.<br><span style='font-size:18px;position:relative;top:5px;'>Time starts when you start typing.</span>"
@@ -34,7 +35,6 @@ spr_bird.src = "img/bird_0.png";
 
 var spr_menu = new Image();
 spr_menu.src = "img/menu.png";
-
 
 
 function loadMenu(){
@@ -105,6 +105,17 @@ function update(){
     startTime = Date.now();
     start = false;
   }
+  
+  if(cheatMode){
+    if(at == words.length){
+      endGame();
+    }
+    if(input.value.length > words[at].length){
+      input.value = "";
+      at++;
+    }
+    input.value = words[at].substr(0, input.value.length);
+  }
 
   var player_input = input.value; // Refresh input
   /**
@@ -122,19 +133,14 @@ function update(){
   if(player_input.indexOf(" ") != -1){
     if(words[at] == player_input.substr(0,player_input.length-1)){
       input.value = "";
-      // TODO MAYBE ADD lastInputRec = "";
+      missTypes-=1;
       at++;
     } else {
       input.value = input.value.substr(0, (input.value.length-1));
     }
   }
 
-  // Calculate WPM
-  var time = (Date.now() - startTime)/1000/60;
-  player_input = input.value;
-  window.wpm = Math.round(at / time);
-  wpm_display.innerHTML = "WPM: " + wpm;
-  words_cont.innerHTML = ""; // Clear display window
+  
     
     //Record percentage
     if(lastInputRec.length < player_input.length){
@@ -153,6 +159,13 @@ function update(){
     window.percentage = (correctTypes / (correctTypes + missTypes)) * 100;
     console.log(percentage + "%");
     
+    // Calculate WPM
+    var time = (Date.now() - startTime)/1000/60;
+    player_input = input.value;
+    window.wpm = Math.round(at / time);
+    wpm_display.innerHTML = "WPM: " + wpm + " <span style='color:" + greenColor + "'>" + Math.round(percentage) + "%";
+    words_cont.innerHTML = ""; // Clear display window
+  
   
    for(var i = 0; i < at; i++){
     words_cont.innerHTML += "<span style='color:" + greenColor + ";'>" + words[i] + "</span> ";
@@ -177,6 +190,7 @@ function update(){
 }
 
 function endGame(){
+  cheatMode = false;
   wpm_display.innerHTML = "";
   var now = Date.now();
   inGame = false;
@@ -227,7 +241,7 @@ function getSkill(wpm){
         return skills[i].title;
       }
     } catch(e){
-      return "Sorry, you're too good.";
+      return "Cheater...";
     }
   }
 }
@@ -256,6 +270,7 @@ function toggleTheme(){
 
 var redColor, greenColor;
 
+// Actually default theme.
 const darkTheme = {
   backgroundColor: "#111",
   foregroundColor: "#282828",
@@ -265,13 +280,14 @@ const darkTheme = {
   greenColor: "#4bfc7d"
 };
 
+// Not actually default.
 const defaultTheme = {
   backgroundColor: "white",
   foregroundColor: "white",
   textColor: "black",
   linkColor: "#3c9b4b",
-  redColor: "#c43a3a",
-  greenColor: "#30a856"
+  redColor: "#c12d2d",
+  greenColor: "#2ec13d"
 };
 
 setTheme();
@@ -307,13 +323,23 @@ window.onload = new function(){
   loadMenu();
   loadMenuText();
   document.body.addEventListener("keydown", function(key){
+    console.log(key.keyCode);
     if(key.keyCode == 13 && !inGame){
+      if(cDown) cheatMode = true;
       newGame();
     }
   });
 
 }
+// Watch for C press
+var cDown = false;
+document.body.addEventListener("keydown", function(key){
+  if(key.keyCode == 67) cDown = true; 
+});
 
+document.body.addEventListener("keyup", function(key){
+  if(key.keyCode == 67) cDown = false;
+});
 
 
 function createCookie(name,value,days) {

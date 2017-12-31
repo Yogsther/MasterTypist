@@ -3,7 +3,7 @@ var inGame = false;
 var words_cont = document.getElementById('words_cont');
 var input = document.getElementById("player_input");
 var wpm_display = document.getElementById("wpm");
-
+var wpm = 0;
 // Setup canvas
 var canvas = document.getElementById("canvas");
 var ctx = canvas.getContext("2d");
@@ -14,9 +14,17 @@ function loadMenuText(){
   words_cont.innerHTML = "<a href='javascript:newGame()'>Click here to start new game!</a><br>or hit enter.<br><span style='font-size:18px;position:relative;top:5px;'>Time starts when you start typing.</span>"
 }
 
+var restart;
 var start;
 function newGame(){
+  // Reset local stats
+
+  window.statArr = [];
+  inEndGame = false;
   lastInputRec = "";
+  missTypes = 0;
+  correctTypes = 0;
+  percentage = 1;
   inGame = true;
   start = true;
   words = sorcerers_stone[Math.floor(Math.random()*sorcerers_stone.length)].split(" ");
@@ -24,6 +32,8 @@ function newGame(){
   at = 0;
   currentLetters = 0;
   input.focus();
+  restart = false;
+  drawMenu();
 }
 
 // Setup sprites
@@ -35,6 +45,9 @@ spr_bird.src = "img/bird_0.png";
 
 var spr_menu = new Image();
 spr_menu.src = "img/menu.png";
+
+var spr_flag = new Image();
+spr_flag.src = "img/flag.png";
 
 
 function loadMenu(){
@@ -58,32 +71,82 @@ function positiveOrNegative(){
 
 var direction = "up";
 var height = 0;
+var inEndGame = false;
+var shutdown = true;
 
-
-function drawMenu(){ // And game
+function drawMenu(){ // and game!
   // Draw menu canvas
-  // TODO add return when toggle darkmode bug
-  var speedUp = 0.4;
+  shutdown = false;
+  if(restart){
+    restart = false;
+    shutdown = true;
+    return;
+  }
+  if(isNaN(wpm)) wpm = 0;
+  
+  var speedUp = 0.02 * wpm;
+  if(speedUp > 5) speedUp = 5;
     if(direction === "up") height += speedUp;
     if(direction === "down") height -= speedUp;
-    if(height > 20) direction = "down";
+    if(height > 4) direction = "down";
     if(height < 0) direction = "up";
     ctx.drawImage(spr_bg, 0, 0); // Draw background
+  
+  
+  if(inEndGame){
+     for(var i = 0; i < statArr.length; i++){
+      try{
+        if(lastX < statArr[i].x){
+        ctx.lineTo(statArr[i].x+20, statArr[i].y+20);  
+        }
+        window.lastX = statArr[i].x;
+      } catch(e){
+      ctx.stroke();
+    }
+      
+    }
+    return;
+  }
   if(!inGame){
     ctx.drawImage(spr_menu, 0, 0);
     requestAnimationFrame(drawMenu);
   }
   if(inGame){
+   
     
     var clearedWords = [];
     for(var i = 0; i < at; i++){
       clearedWords.push(words[i]);
     }
     var wordsJoined = clearedWords.join(" ");
-    var typedLetters = wordsJoined.length + currentLetters;
+    window.typedLetters = wordsJoined.length + currentLetters;
+     
+    // Calculate WPM
+    var time = (Date.now() - startTime)/1000/60;
+    wpm = Math.round((typedLetters/5) / time);
+    
     var timeline = (typedLetters) / words.join(" ").length;
-    var xPos = 450 * timeline;
-    ctx.drawImage(spr_bird, xPos, height+10, 50, 50);
+    var xPos = 480 * timeline;
+    // 0 = 100% 100 = 0%
+    if(percentage == 1) percentage = 100;
+    var percentage_height = 100 - percentage;
+    if(isNaN(percentage_height)) percentage_height = 0;
+
+    statArr[typedLetters-1] = {x: xPos,
+                             y: percentage_height};
+    
+    ctx.strokeStyle = "rgba(234,42,63,0.6)"; 
+    ctx.beginPath();
+    ctx.lineWidth = 2;
+    for(var i = 0; i < statArr.length; i++){
+      try{
+        ctx.lineTo(statArr[i].x+20, statArr[i].y+20);  
+      } catch(e){
+      }
+      
+      ctx.stroke();
+    }
+    ctx.drawImage(spr_bird, xPos, height+percentage_height, 50, 50);
     requestAnimationFrame(drawMenu);
   }
 }
@@ -95,7 +158,8 @@ var correctTypes = 0;
 var missTypes = 0;
 
 function update(){
-
+  player_input = input.value;
+  
   if(!inGame){
     input.value = "";
     return;
@@ -139,6 +203,13 @@ function update(){
       input.value = input.value.substr(0, (input.value.length-1));
     }
   }
+  
+  var wordsAt = [];
+  for(var i = 0; i < at; i++){
+    wordsAt.push(words[at]);    
+  }
+  var wordsJoined = wordsAt.join(" ");    
+  var exactlyAt = wordsJoined.length + currentLetters;
 
   
     
@@ -156,14 +227,10 @@ function update(){
 
     // Calculate percentage
     // Correct types / total types
-    window.percentage = (correctTypes / (correctTypes + missTypes)) * 100;
-    console.log(percentage + "%");
+    window.percentage = ((typedLetters - missTypes) / typedLetters) * 100;
     
-    // Calculate WPM
-    var time = (Date.now() - startTime)/1000/60;
-    player_input = input.value;
-    window.wpm = Math.round(at / time);
-    wpm_display.innerHTML = "WPM: " + wpm + " <span style='color:" + greenColor + "'>" + Math.round(percentage) + "%";
+    
+    wpm_display.innerHTML = "WPM: " + wpm + " <span style='color:" + greenColor + "'>" + Math.round(Number(percentage)) + "%";
     words_cont.innerHTML = ""; // Clear display window
   
   
@@ -190,13 +257,20 @@ function update(){
 }
 
 function endGame(){
+  // Play sound effect
+  var succ = new Audio();
+  succ.src = "sound/success.mp3";
+  succ.play();
+  
+  restart = true; // Shutdown main render heartbeat
   cheatMode = false;
+  inEndGame = true;
   wpm_display.innerHTML = "";
   var now = Date.now();
   inGame = false;
   var time = now - startTime;
   input.value = "";
-  words_cont.innerHTML = "Game over! <br>Avrage WPM " + wpm + "!<br> Title: " + getSkill(wpm) + "<br><a href='javascript:newGame()'>Click here to play again</a> or hit enter.";
+  words_cont.innerHTML = "Game over! <br>Avrage WPM " + wpm + "!<br> Accuracy: " + Math.round(percentage) + "%<br> Title: " + getSkill(wpm) + "<br><a href='javascript:newGame()'>Click here to play again</a> or hit enter.";
 }
 
 function getSkill(wpm){
@@ -323,7 +397,6 @@ window.onload = new function(){
   loadMenu();
   loadMenuText();
   document.body.addEventListener("keydown", function(key){
-    console.log(key.keyCode);
     if(key.keyCode == 13 && !inGame){
       if(cDown) cheatMode = true;
       newGame();

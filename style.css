@@ -14,7 +14,6 @@ a:hover{
 
 body{
   font-family: 'Muli';
-  //background: #111;
 }
 
 #player_input{
@@ -35,7 +34,6 @@ body{
   border-radius: 5px;
   box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
   margin-bottom: 20px;
-  //background: white;
   font-size: 20px;
   padding: 20px;
 }
@@ -62,3 +60,32 @@ body{
   display: inline-block;
   margin-left: 20px;
 }
+
+#logo{
+  display: block;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 20px;
+  position: relative;
+  margin: 0 auto;
+  width: 500px;
+  text-align: center;
+  margin-bottom: 20px;
+  line-height: 30px;
+}
+
+#canvas{
+
+  border-radius: 10px 10px 0px 0px;
+  box-shadow: 0px 0px 10px rgba(0,0,0,0.5)
+  
+}
+
+
+
+
+
+
+
+
+
+

@@ -4,31 +4,95 @@ var words_cont = document.getElementById('words_cont');
 var input = document.getElementById("player_input");
 var wpm_display = document.getElementById("wpm");
 
+// Setup canvas
+var canvas = document.getElementById("canvas");
+var ctx = canvas.getContext("2d");
 
-window.onload = new function(){
-  // Load menu on load
-  loadMenu();
-  document.body.addEventListener("keydown", function(key){
-    if(key.keyCode == 13 && !inGame){
-      newGame();
-    }
-  });
 
-}
-
-function loadMenu(){
+function loadMenuText(){
   words_cont.innerHTML = "<a href='javascript:newGame()'>Click here to start new game!</a><br>or hit enter.<br><span style='font-size:18px;position:relative;top:5px;'>Time starts when you start typing.</span>"
 }
 
 var start;
 function newGame(){
+  lastInputRec = "";
   inGame = true;
   start = true;
   words = sorcerers_stone[Math.floor(Math.random()*sorcerers_stone.length)].split(" ");
   words_cont.innerHTML = words.join(" ");
   at = 0;
+  currentLetters = 0;
   input.focus();
 }
+
+// Setup sprites
+var spr_bg = new Image();
+spr_bg.src = "img/landscape.png";
+
+var spr_bird = new Image();
+spr_bird.src = "img/bird_0.png";
+
+var spr_menu = new Image();
+spr_menu.src = "img/menu.png";
+
+
+
+function loadMenu(){
+  // Setup to render the menu
+  window.birdPosX = 0;
+  window.birdPosY = 0;
+  window.birdRoation = 0;
+  drawMenu();
+}
+
+function positiveOrNegative(){
+  // Randomly returns positive or negative
+  // Not used.
+  var outcome = Math.floor(Math.random()*2);
+  if(outcome > 0){
+    return -1;
+  } else {
+    return 1;
+  }  
+}
+
+var direction = "up";
+var height = 0;
+
+
+function drawMenu(){ // And game
+  // Draw menu canvas
+  // TODO add return when toggle darkmode bug
+  var speedUp = 0.4;
+    if(direction === "up") height += speedUp;
+    if(direction === "down") height -= speedUp;
+    if(height > 20) direction = "down";
+    if(height < 0) direction = "up";
+    ctx.drawImage(spr_bg, 0, 0); // Draw background
+  if(!inGame){
+    ctx.drawImage(spr_menu, 0, 0);
+    requestAnimationFrame(drawMenu);
+  }
+  if(inGame){
+    
+    var clearedWords = [];
+    for(var i = 0; i < at; i++){
+      clearedWords.push(words[i]);
+    }
+    var wordsJoined = clearedWords.join(" ");
+    var typedLetters = wordsJoined.length + currentLetters;
+    var timeline = (typedLetters) / words.join(" ").length;
+    var xPos = 450 * timeline;
+    ctx.drawImage(spr_bird, xPos, height+10, 50, 50);
+    requestAnimationFrame(drawMenu);
+  }
+}
+
+var currentLetters = 0;
+var lastInputRec = "";
+
+var correctTypes = 0;
+var missTypes = 0;
 
 function update(){
 
@@ -47,9 +111,9 @@ function update(){
    * If input is correct, show that with colors.
    */
   if(words[at].indexOf(player_input) == 0){
-    input.style.color = "green";
+    input.style.color = greenColor;
   } else {
-    input.style.color = "red";
+    input.style.color = redColor;
   }
   if(at == (words.length-1) && player_input == words[at]){
     endGame();
@@ -58,8 +122,8 @@ function update(){
   if(player_input.indexOf(" ") != -1){
     if(words[at] == player_input.substr(0,player_input.length-1)){
       input.value = "";
+      // TODO MAYBE ADD lastInputRec = "";
       at++;
-      console.log("New word!");
     } else {
       input.value = input.value.substr(0, (input.value.length-1));
     }
@@ -67,19 +131,46 @@ function update(){
 
   // Calculate WPM
   var time = (Date.now() - startTime)/1000/60;
-
+  player_input = input.value;
   window.wpm = Math.round(at / time);
   wpm_display.innerHTML = "WPM: " + wpm;
-  /**
-   * Display progress
-   */
-   words_cont.innerHTML = ""; // Clear
-
-   for(var i = 0; i < at; i++){
-    words_cont.innerHTML += "<span style='color:green;'>" + words[i] + "</span> ";
+  words_cont.innerHTML = ""; // Clear display window
+    
+    //Record percentage
+    if(lastInputRec.length < player_input.length){
+      // Typed new letter
+      if(player_input == words[at].substr(0,player_input.length)){
+        correctTypes++;
+      } else {
+        missTypes++;
+      }
     }
-  for(var i = at; i < (words.length); i++){
-    words_cont.innerHTML += "<span style='color:red;'>" + words[i] + "</span> ";
+  
+    lastInputRec = player_input;
+
+    // Calculate percentage
+    // Correct types / total types
+    window.percentage = (correctTypes / (correctTypes + missTypes)) * 100;
+    console.log(percentage + "%");
+    
+  
+   for(var i = 0; i < at; i++){
+    words_cont.innerHTML += "<span style='color:" + greenColor + ";'>" + words[i] + "</span> ";
+    }
+    var loggedLetters;
+    currentLetters = 0;
+    for(var i = 0; i < player_input.length; i++){
+    // Track were you are on the character
+      if(words[at][i] != player_input[i]) break;
+      currentLetters++;
+      words_cont.innerHTML += "<span style='color:" + greenColor + ";'>" + words[at][i]; + "</span> ";
+      loggedLetters = i;
+    }
+      words_cont.innerHTML += "<span style='color:" + redColor + ";'>" + words[at].substr(loggedLetters+1,words[at].length) + "</span> ";
+
+  
+  for(var i = at+1; i < (words.length); i++){
+    words_cont.innerHTML += " <span style='color:" + redColor + ";'>" + words[i] + "</span>";
     }
 
   //  requestAnimationFrame(update);
@@ -141,7 +232,9 @@ function getSkill(wpm){
   }
 }
 
-
+if(readCookie("theme") == null){
+  createCookie("theme", "dark", 10000);
+}
 var theme = readCookie("theme");
 function toggleTheme(){
   if(theme == "default"){
@@ -154,32 +247,72 @@ function toggleTheme(){
     createCookie("theme", "default", 10000)
   }
   setTheme();
+  loadMenu();
 }
 
 /*
   Declare themes
 */
 
+var redColor, greenColor;
+
 const darkTheme = {
   backgroundColor: "#111",
-  foregroundColor: "#ededed",
+  foregroundColor: "#282828",
   textColor: "#ffffff",
-  linkColor: "#6fed63"
+  linkColor: "#6fed63",
+  redColor: "#ff4949",
+  greenColor: "#4bfc7d"
+};
+
+const defaultTheme = {
+  backgroundColor: "white",
+  foregroundColor: "white",
+  textColor: "black",
+  linkColor: "#3c9b4b",
+  redColor: "#c43a3a",
+  greenColor: "#30a856"
 };
 
 setTheme();
 
 function setTheme(){
-  var themeName = "default"
+  var themeName = defaultTheme;
   if(theme == "dark") themeName = darkTheme;
+  
+  // Set red and green colors
+  redColor = themeName.redColor;
+  greenColor = themeName.greenColor;
+  
+  document.getElementById("darkToggle").style.color = themeName.textColor;
   
   // Set background
   document.body.style.background = themeName.backgroundColor;
+  document.body.style.color = themeName.textColor;
   // Set foreground color
   document.getElementById("words_cont").style.background = themeName.foregroundColor;
   document.getElementById("player_input").style.background = themeName.foregroundColor;
+  
+  var arr = document.getElementsByTagName("a");
+  for(var i = 0; i < arr.length-1; i++){
+    arr[i].style.color = themeName.linkColor;
+  }
+  
 }
 
+
+
+window.onload = new function(){
+  // Load menu on load
+  loadMenu();
+  loadMenuText();
+  document.body.addEventListener("keydown", function(key){
+    if(key.keyCode == 13 && !inGame){
+      newGame();
+    }
+  });
+
+}
 
 
 
@@ -203,10 +336,6 @@ function readCookie(name) {
     }
     return null;
 }
-
-
-
-
 
 
 

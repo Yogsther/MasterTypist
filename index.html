@@ -5,16 +5,20 @@
     <title>Master Typist</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css?family=Muli" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet">
+
   </head>
 <body>
   
 <div id="wrap">
+<span id="logo">Master<br>Typist</span>
+<canvas id="canvas" height="100" width="540"></canvas>
 <div id="words_cont">
 Looks like you don't have Javascript enabled! You can't play with game without it!
 </div>
 <input id="player_input" type="text" oninput="update()"> <span id="wpm"></span>
 </div>
-  <span id="vers"><a href="javascript:toggleTheme()" style="color: black">Dark Mode</a> Master Typist v.0.4</span>
+  <span id="vers"><a href="javascript:toggleTheme()" id="darkToggle">Toggle dark mode</a> | Master Typist v.0.4</span>
 <script type="text/javascript" src="typer.js"></script>
 <script type="text/javascript" src="words.js"></script>
 
